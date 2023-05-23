@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/url"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -13,12 +14,12 @@ type HealthService struct {
 	alive    bool
 	period   time.Duration
 	timeout  time.Duration
-	load     uint32
+	load     int32
 	capacity int32
 
-	stop 		chan struct{}
-	health_mux  sync.RWMutex
-	stop_mux  	sync.RWMutex
+	stop 	   chan struct{}
+	alive_mux  sync.RWMutex
+	stop_mux   sync.RWMutex
 }
 
 func NewHealthService(addr *url.URL, period time.Duration, timeout time.Duration, capacity int32) *HealthService {
@@ -35,8 +36,8 @@ func NewHealthService(addr *url.URL, period time.Duration, timeout time.Duration
 func (service *HealthService) HealthCheck() {
 	conn, err := net.DialTimeout("tcp", service.addr.Host, service.timeout)
 
-	service.health_mux.Lock()
-	defer service.health_mux.Unlock()
+	service.alive_mux.Lock()
+	defer service.alive_mux.Unlock()
 
 	if err != nil {
 		service.alive = false
@@ -84,19 +85,19 @@ func (service *HealthService) Stop() {
 }
 
 func (service *HealthService) IsAlive() bool {
-	service.health_mux.RLock()
-	defer service.health_mux.RUnlock()
+	service.alive_mux.RLock()
+	defer service.alive_mux.RUnlock()
 	return service.alive
 }
 
-func (service *HealthService) GetLoad() uint32 {
-	service.health_mux.RLock()
-	defer service.health_mux.RUnlock()
-	return service.load
+func (service *HealthService) IsAvailable() bool {
+	return service.IsAlive() && service.GetLoad() < service.GetCapacity()
+}
+
+func (service *HealthService) GetLoad() int32 {
+	return atomic.LoadInt32(&service.load)
 }
 
 func (service *HealthService) GetCapacity() int32 {
-	service.health_mux.RLock()
-	defer service.health_mux.RUnlock()
-	return service.capacity
+	return atomic.LoadInt32(&service.capacity)
 }

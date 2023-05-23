@@ -1,21 +1,28 @@
 package server
 
 type ServerPool struct {
-	servers []*ServerInterface
+	servers    []*ServerInterface
+	Order 	   []int
 }
 
 func NewServerPool(servers []*ServerInterface) *ServerPool {
+	order := make([]int, len(servers))
+	for i := 0; i < len(servers); i++ {
+		order[i] = i
+	}
+
 	return &ServerPool{
 		servers: servers,
+		Order: order,
 	}
 }
 
-func (pool *ServerPool) GetNext(idx int) *ServerInterface {
+func (pool *ServerPool) GetNextAvailable(order []int, idx int) *ServerInterface {
 	for i := 0; i < pool.Len(); i++ {
 		try_idx := (idx + i) % pool.Len()
-		server := pool.Get(try_idx)
+		server := pool.Get(order[try_idx])
 
-		if server.Health.IsAlive() {
+		if server.Health.IsAvailable() {
 			return server
 		}
 	}

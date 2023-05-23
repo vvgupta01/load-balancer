@@ -31,6 +31,7 @@ func (server *Server) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *Server) ServerRoutine() {
+	// https://stackoverflow.com/questions/39320025/how-to-stop-http-listenandserve
 	http_server := http.Server{
 		Addr:    fmt.Sprintf(":%d", server.port),
 		Handler: http.HandlerFunc(server.HTTPHandler),

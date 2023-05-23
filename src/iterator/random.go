@@ -17,5 +17,5 @@ func NewRandomIterator(seed func(), pool *server.ServerPool) Iterator {
 
 func (iter *RandomIterator) Next() *server.ServerInterface {
 	i := rand.Intn(iter.pool.Len())
-	return iter.pool.GetNext(i)
+	return iter.pool.GetNextAvailable(iter.pool.Order, i)
 }

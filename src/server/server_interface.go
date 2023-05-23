@@ -1,9 +1,11 @@
 package server
 
 import (
+	"math"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"sync/atomic"
 	"time"
 )
 
@@ -14,7 +16,7 @@ type ServerInterface struct {
 }
 
 func NewServerInterface(addr *url.URL) *ServerInterface {
-	health := NewHealthService(addr, time.Second*2, time.Second*2, -1)
+	health := NewHealthService(addr, time.Second*2, time.Second*2, math.MaxInt32)
 	health.Start()
 
 	return &ServerInterface{
@@ -24,6 +26,9 @@ func NewServerInterface(addr *url.URL) *ServerInterface {
 	}
 }
 
-func (si *ServerInterface) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	si.proxy.ServeHTTP(w, r)
+func (Interface *ServerInterface) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	atomic.AddInt32(&Interface.Health.load, 1)
+	defer atomic.AddInt32(&Interface.Health.load, -1)
+
+	Interface.proxy.ServeHTTP(w, r)
 }
