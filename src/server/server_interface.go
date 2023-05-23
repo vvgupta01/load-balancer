@@ -4,27 +4,26 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"time"
 )
 
 type ServerInterface struct {
-	addr  *url.URL
-	proxy *httputil.ReverseProxy
-	alive bool
-	load  uint32
+	Addr   *url.URL
+	proxy  *httputil.ReverseProxy
+	Health *HealthService
 }
 
 func NewServerInterface(addr *url.URL) *ServerInterface {
+	health := NewHealthService(addr, time.Second*2, time.Second*2, -1)
+	health.Start()
+
 	return &ServerInterface{
-		addr:  addr,
-		proxy: httputil.NewSingleHostReverseProxy(addr),
-		alive: true,
+		Addr:   addr,
+		proxy:  httputil.NewSingleHostReverseProxy(addr),
+		Health: health,
 	}
 }
 
 func (si *ServerInterface) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	si.proxy.ServeHTTP(w, r)
-}
-
-func (si *ServerInterface) GetAddr() *url.URL {
-	return si.addr
 }

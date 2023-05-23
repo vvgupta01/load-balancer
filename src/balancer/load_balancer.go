@@ -23,7 +23,7 @@ func (balancer *LoadBalancer) HTTPHandler(w http.ResponseWriter, r *http.Request
 
 	server := balancer.iter.Next()
 	if server != nil {
-		fmt.Printf("Load balancer: Forwarding request to %s...\n", server.GetAddr())
+		fmt.Printf("Load balancer: Forwarding request to %s...\n", server.Addr)
 		server.ServeHTTP(w, r)
 	} else {
 		http.Error(w, "Service unavailable", http.StatusServiceUnavailable)

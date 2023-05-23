@@ -15,7 +15,7 @@ func (pool *ServerPool) GetNext(idx int) *ServerInterface {
 		try_idx := (idx + i) % pool.Len()
 		server := pool.Get(try_idx)
 
-		if server.alive {
+		if server.Health.IsAlive() {
 			return server
 		}
 	}
