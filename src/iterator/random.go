@@ -5,17 +5,17 @@ import (
 	"math/rand"
 )
 
-type RandomIterator struct {
+type Random struct {
 	pool *server.ServerPool
 }
 
-func NewRandomIterator(seed func(), pool *server.ServerPool) Iterator {
-	return &RandomIterator{
+func NewRandom(seed func(), pool *server.ServerPool) Iterator {
+	return &Random{
 		pool: pool,
 	}
 }
 
-func (iter *RandomIterator) Next() *server.ServerInterface {
+func (iter *Random) Next() *server.ServerInterface {
 	i := rand.Intn(iter.pool.Len())
-	return iter.pool.GetNextAvailable(iter.pool.Order, i)
+	return iter.pool.GetNextAvailable(iter.pool.DefaultOrder, i)
 }

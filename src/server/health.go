@@ -17,9 +17,9 @@ type HealthService struct {
 	load     int32
 	capacity int32
 
-	stop 	   chan struct{}
-	alive_mux  sync.RWMutex
-	stop_mux   sync.RWMutex
+	stop      chan struct{}
+	alive_mux sync.RWMutex
+	stop_mux  sync.RWMutex
 }
 
 func NewHealthService(addr *url.URL, period time.Duration, timeout time.Duration, capacity int32) *HealthService {

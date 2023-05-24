@@ -14,12 +14,12 @@ func main() {
 	port := 3000
 	proxy_addr, _ := url.Parse(fmt.Sprintf("http://localhost:%d", port))
 
-	// Multiple servers
-	num_servers := 2
+	// Initialize multiple servers
+	num_servers := 3
 	var servers []*server.Server
 	var interfaces []*server.ServerInterface
 	for i := 1; i <= num_servers; i++ {
-		s := server.NewServer(uint16(port+i), proxy_addr)
+		s := server.NewServer(uint16(port+i), proxy_addr, int32(i), 100)
 
 		servers = append(servers, s)
 		interfaces = append(interfaces, s.Interface)
@@ -27,16 +27,16 @@ func main() {
 		s.Start()
 	}
 	pool := server.NewServerPool(interfaces)
-	
-	// Single server
-	// s := server.NewServer(uint16(3001), proxy_addr)
+
+	// Initialize single server
+	// s := server.NewServer(uint16(3001), proxy_addr, 1, 100)
 	// s.Start()
 	// interfaces := []*server.ServerInterface{s.Interface}
 	// pool := server.NewServerPool(interfaces)
 
-	// iter := iterator.NewRandomIterator(rand.Seed(time.Now().UnixNano(), pool))
-	// iter := iterator.NewRoundRobinIterator(pool)
-	iter := iterator.NewLeastConnectionsIterator(pool)
+	// iter := iterator.NewRandom(rand.Seed(time.Now().UnixNano(), pool))
+	// iter := iterator.NewRoundRobin(pool)
+	iter := iterator.NewWeightedRoundRobin(pool)
 	load_balancer := balancer.NewLoadBalancer(iter, uint16(port))
 	go load_balancer.Start()
 
@@ -47,11 +47,11 @@ func main() {
 
 	// // Test running server/health
 	// time.Sleep(3 * time.Second)
-	
+
 	// // Test stopped server/running health
 	// s.Stop()
 	// time.Sleep(3 * time.Second)
-	
+
 	// // Test stopped server/stopped health
 	// interfaces[0].Health.Stop()
 	// time.Sleep(3 * time.Second)

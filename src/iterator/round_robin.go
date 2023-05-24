@@ -2,23 +2,26 @@ package iterator
 
 import (
 	server "load-balancer/src/server"
-	"math"
-	"sync/atomic"
+	"sync"
 )
 
-type RoundRobinIterator struct {
+type RoundRobin struct {
 	pool *server.ServerPool
-	curr uint64
+	curr int
+	mux  sync.RWMutex
 }
 
-func NewRoundRobinIterator(pool *server.ServerPool) Iterator {
-	return &RoundRobinIterator{
+func NewRoundRobin(pool *server.ServerPool) Iterator {
+	return &RoundRobin{
 		pool: pool,
-		curr: math.MaxUint64,
+		curr: 0,
 	}
 }
 
-func (iter *RoundRobinIterator) Next() *server.ServerInterface {
-	next := atomic.AddUint64(&iter.curr, uint64(1)) % uint64(iter.pool.Len())
-	return iter.pool.GetNextAvailable(iter.pool.Order, int(next))
+func (iter *RoundRobin) Next() *server.ServerInterface {
+	iter.mux.Lock()
+	defer iter.mux.Unlock()
+
+	iter.curr = (iter.curr + 1) % iter.pool.Len()
+	return iter.pool.GetNextAvailable(iter.pool.DefaultOrder, iter.curr)
 }

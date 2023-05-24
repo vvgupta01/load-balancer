@@ -1,7 +1,6 @@
 package server
 
 import (
-	"math"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -13,16 +12,18 @@ type ServerInterface struct {
 	Addr   *url.URL
 	proxy  *httputil.ReverseProxy
 	Health *HealthService
+	Weight int32
 }
 
-func NewServerInterface(addr *url.URL) *ServerInterface {
-	health := NewHealthService(addr, time.Second*2, time.Second*2, math.MaxInt32)
+func NewServerInterface(addr *url.URL, weight int32, capacity int32) *ServerInterface {
+	health := NewHealthService(addr, time.Second*2, time.Second*2, capacity)
 	health.Start()
 
 	return &ServerInterface{
 		Addr:   addr,
 		proxy:  httputil.NewSingleHostReverseProxy(addr),
 		Health: health,
+		Weight: weight,
 	}
 }
 

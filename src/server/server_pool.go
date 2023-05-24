@@ -1,8 +1,8 @@
 package server
 
 type ServerPool struct {
-	servers    []*ServerInterface
-	Order 	   []int
+	servers      []*ServerInterface
+	DefaultOrder []int
 }
 
 func NewServerPool(servers []*ServerInterface) *ServerPool {
@@ -12,8 +12,8 @@ func NewServerPool(servers []*ServerInterface) *ServerPool {
 	}
 
 	return &ServerPool{
-		servers: servers,
-		Order: order,
+		servers:      servers,
+		DefaultOrder: order,
 	}
 }
 
