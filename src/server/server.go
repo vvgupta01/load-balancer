@@ -41,7 +41,8 @@ func (server *Server) ServerRoutine() {
 			fmt.Println(err)
 		}
 	}()
-	fmt.Printf("Started server on %s...\n", server.Interface.Addr)
+	fmt.Printf("Started server on %s (weight = %d, capacity = %d)\n", server.Interface.Addr,
+		server.Interface.Weight, server.Interface.Health.capacity)
 
 	<-server.stop
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)

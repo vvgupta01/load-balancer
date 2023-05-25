@@ -1,0 +1,17 @@
+[
+    {
+        "port": 3001,
+        "weight": 1,
+        "capacity": 100
+    },
+    {
+        "port": 3002,
+        "weight": 1,
+        "capacity": 100
+    },
+    {
+        "port": 3003,
+        "weight": 1,
+        "capacity": 100
+    }
+]

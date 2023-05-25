@@ -1,11 +1,11 @@
 package server
 
 import (
+	utils "load-balancer/src/utils"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"sync/atomic"
-	"time"
 )
 
 type ServerInterface struct {
@@ -16,15 +16,18 @@ type ServerInterface struct {
 }
 
 func NewServerInterface(addr *url.URL, weight int32, capacity int32) *ServerInterface {
-	health := NewHealthService(addr, time.Second*2, time.Second*2, capacity)
-	health.Start()
-
+	health := NewHealthService(addr, utils.GetTimeEnv("HEALTH_INTERVAL"),
+		utils.GetTimeEnv("HEALTH_TIMEOUT"), capacity)
 	return &ServerInterface{
 		Addr:   addr,
 		proxy:  httputil.NewSingleHostReverseProxy(addr),
 		Health: health,
 		Weight: weight,
 	}
+}
+
+func (Interface *ServerInterface) StartHealthCheck() {
+	Interface.Health.Start()
 }
 
 func (Interface *ServerInterface) ServeHTTP(w http.ResponseWriter, r *http.Request) {

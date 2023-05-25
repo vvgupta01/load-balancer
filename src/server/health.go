@@ -12,7 +12,7 @@ import (
 type HealthService struct {
 	addr     *url.URL
 	alive    bool
-	period   time.Duration
+	interval time.Duration
 	timeout  time.Duration
 	load     int32
 	capacity int32
@@ -22,11 +22,11 @@ type HealthService struct {
 	stop_mux  sync.RWMutex
 }
 
-func NewHealthService(addr *url.URL, period time.Duration, timeout time.Duration, capacity int32) *HealthService {
+func NewHealthService(addr *url.URL, interval time.Duration, timeout time.Duration, capacity int32) *HealthService {
 	return &HealthService{
 		addr:     addr,
 		alive:    true,
-		period:   period,
+		interval: interval,
 		timeout:  timeout,
 		load:     0,
 		capacity: capacity,
@@ -45,11 +45,12 @@ func (service *HealthService) HealthCheck() {
 		_ = conn.Close()
 		service.alive = true
 	}
-	fmt.Printf("%s status - alive = %t, load = %d\n", service.addr, service.alive, service.load)
+	fmt.Printf("%s status - alive = %t, load = %d/%d\n", service.addr,
+		service.alive, service.load, service.capacity)
 }
 
 func (service *HealthService) HealthRoutine() {
-	t := time.NewTicker(service.period)
+	t := time.NewTicker(service.interval)
 	for {
 		select {
 		case <-t.C:
@@ -68,7 +69,8 @@ func (service *HealthService) Start() {
 	if service.stop == nil {
 		service.stop = make(chan struct{})
 		go service.HealthRoutine()
-		fmt.Printf("Started health service for %s\n", service.addr)
+		fmt.Printf("Started health service for %s (interval = %s, timeout = %s)\n",
+			service.addr, service.interval, service.timeout)
 	}
 }
 

@@ -1,46 +1,65 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
-	balancer "load-balancer/src/balancer"
-	iterator "load-balancer/src/iterator"
-	server "load-balancer/src/server"
+	"io/ioutil"
+	"load-balancer/src/balancer"
+	"load-balancer/src/iterator"
+	"load-balancer/src/server"
+	utils "load-balancer/src/utils"
 	"net/url"
 	"time"
+
+	"github.com/joho/godotenv"
 	// "math/rand"
 )
 
+type ServerConfig struct {
+	Port     uint16
+	Weight   int32
+	Capacity int32
+}
+
 func main() {
-	port := 3000
-	proxy_addr, _ := url.Parse(fmt.Sprintf("http://localhost:%d", port))
+	godotenv.Load("config.env")
+	proxy_port := utils.GetIntEnv("PROXY_PORT")
 
-	// Initialize multiple servers
-	num_servers := 3
-	var servers []*server.Server
-	var interfaces []*server.ServerInterface
-	for i := 1; i <= num_servers; i++ {
-		s := server.NewServer(uint16(port+i), proxy_addr, int32(i), 100)
+	proxy_addr, _ := url.Parse(fmt.Sprintf("http://localhost:%d", proxy_port))
 
-		servers = append(servers, s)
-		interfaces = append(interfaces, s.Interface)
+	file, err := ioutil.ReadFile("config_server.json")
+	if err != nil {
+		fmt.Println(err)
+	}
 
-		s.Start()
+	var configs []ServerConfig
+	if err := json.Unmarshal(file, &configs); err != nil {
+		fmt.Println(err)
+	}
+
+	// Initialize servers
+	servers := make([]*server.Server, len(configs))
+	interfaces := make([]*server.ServerInterface, len(configs))
+
+	for i, conf := range configs {
+		srv := server.NewServer(conf.Port, proxy_addr, conf.Weight, conf.Capacity)
+
+		servers[i] = srv
+		interfaces[i] = srv.Interface
+
+		srv.Start()
+		srv.Interface.StartHealthCheck()
 	}
 	pool := server.NewServerPool(interfaces)
 
-	// Initialize single server
-	// s := server.NewServer(uint16(3001), proxy_addr, 1, 100)
-	// s.Start()
-	// interfaces := []*server.ServerInterface{s.Interface}
-	// pool := server.NewServerPool(interfaces)
-
+	// Initialize iterator/load-balancer
 	// iter := iterator.NewRandom(rand.Seed(time.Now().UnixNano(), pool))
 	// iter := iterator.NewRoundRobin(pool)
 	iter := iterator.NewWeightedRoundRobin(pool)
-	load_balancer := balancer.NewLoadBalancer(iter, uint16(port))
+	load_balancer := balancer.NewLoadBalancer(iter, uint16(proxy_port))
 	go load_balancer.Start()
 
-	// Test client
+	// Initialize client
 	time.Sleep(time.Second)
 	client := balancer.NewClient(1, proxy_addr)
 	client.Start()
