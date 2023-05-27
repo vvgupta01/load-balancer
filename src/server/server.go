@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"sync"
@@ -26,7 +27,7 @@ func NewServer(port uint16, proxy_addr *url.URL, weight int32, capacity int32) *
 }
 
 func (server *Server) HTTPHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Printf("Server %s: Received request from %s\n", server.Interface.Addr, r.Host)
+	log.Printf("Server %s: Received request from %s\n", server.Interface.Addr, r.Host)
 	fmt.Fprintf(w, "ACK")
 }
 
@@ -38,10 +39,10 @@ func (server *Server) ServerRoutine() {
 
 	go func() {
 		if err := http_server.ListenAndServe(); err != http.ErrServerClosed {
-			fmt.Println(err)
+			log.Println(err)
 		}
 	}()
-	fmt.Printf("Started server on %s (weight = %d, capacity = %d)\n", server.Interface.Addr,
+	log.Printf("Started server on %s (weight = %d, capacity = %d)\n", server.Interface.Addr,
 		server.Interface.Weight, server.Interface.Health.capacity)
 
 	<-server.stop
@@ -49,7 +50,7 @@ func (server *Server) ServerRoutine() {
 	defer cancel()
 
 	if err := http_server.Shutdown(ctx); err != nil {
-		fmt.Println(err)
+		log.Println(err)
 	}
 }
 
@@ -72,5 +73,5 @@ func (server *Server) Stop() {
 		close(server.stop)
 		server.stop = nil
 	}
-	fmt.Printf("Stopped server on %s...\n", server.Interface.Addr)
+	log.Printf("Stopped server on %s...\n", server.Interface.Addr)
 }

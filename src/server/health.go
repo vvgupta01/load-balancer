@@ -1,7 +1,7 @@
 package server
 
 import (
-	"fmt"
+	"log"
 	"net"
 	"net/url"
 	"sync"
@@ -36,17 +36,14 @@ func NewHealthService(addr *url.URL, interval time.Duration, timeout time.Durati
 func (service *HealthService) HealthCheck() {
 	conn, err := net.DialTimeout("tcp", service.addr.Host, service.timeout)
 
-	service.alive_mux.Lock()
-	defer service.alive_mux.Unlock()
-
 	if err != nil {
-		service.alive = false
+		service.SetAlive(false)
 	} else {
 		_ = conn.Close()
-		service.alive = true
+		service.SetAlive(true)
 	}
-	fmt.Printf("%s status - alive = %t, load = %d/%d\n", service.addr,
-		service.alive, service.load, service.capacity)
+	log.Printf("%s status - alive = %t, load = %d/%d\n", service.addr,
+		service.IsAlive(), service.GetLoad(), service.GetCapacity())
 }
 
 func (service *HealthService) HealthRoutine() {
@@ -69,7 +66,7 @@ func (service *HealthService) Start() {
 	if service.stop == nil {
 		service.stop = make(chan struct{})
 		go service.HealthRoutine()
-		fmt.Printf("Started health service for %s (interval = %s, timeout = %s)\n",
+		log.Printf("Started health service for %s (interval = %s, timeout = %s)\n",
 			service.addr, service.interval, service.timeout)
 	}
 }
@@ -82,8 +79,14 @@ func (service *HealthService) Stop() {
 		service.stop <- struct{}{}
 		close(service.stop)
 		service.stop = nil
-		fmt.Printf("Stopped health service for %s\n", service.addr)
+		log.Printf("Stopped health service for %s\n", service.addr)
 	}
+}
+
+func (service *HealthService) SetAlive(alive bool) {
+	service.alive_mux.Lock()
+	defer service.alive_mux.Unlock()
+	service.alive = alive
 }
 
 func (service *HealthService) IsAlive() bool {

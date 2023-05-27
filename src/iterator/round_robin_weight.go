@@ -29,5 +29,7 @@ func (iter *WeightedRoundRobin) Next() *server.ServerInterface {
 		iter.curr = (iter.curr + 1) % iter.pool.Len()
 	}
 	iter.curr_req++
-	return iter.pool.GetNextAvailable(iter.pool.DefaultOrder, iter.curr)
+
+	_, srv := iter.pool.GetNextAvailable(iter.pool.DefaultOrder, iter.curr)
+	return srv
 }

@@ -10,23 +10,22 @@ func NewServerPool(servers []*ServerInterface) *ServerPool {
 	for i := 0; i < len(servers); i++ {
 		order[i] = i
 	}
-
 	return &ServerPool{
 		servers:      servers,
 		DefaultOrder: order,
 	}
 }
 
-func (pool *ServerPool) GetNextAvailable(order []int, idx int) *ServerInterface {
+func (pool *ServerPool) GetNextAvailable(order []int, idx int) (int, *ServerInterface) {
 	for i := 0; i < pool.Len(); i++ {
 		try_idx := (idx + i) % pool.Len()
 		server := pool.Get(order[try_idx])
 
 		if server.Health.IsAvailable() {
-			return server
+			return try_idx, server
 		}
 	}
-	return nil
+	return -1, nil
 }
 
 func (pool *ServerPool) Len() int {

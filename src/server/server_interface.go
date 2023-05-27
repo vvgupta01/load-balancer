@@ -1,7 +1,7 @@
 package server
 
 import (
-	utils "load-balancer/src/utils"
+	"load-balancer/src/utils"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -16,7 +16,7 @@ type ServerInterface struct {
 }
 
 func NewServerInterface(addr *url.URL, weight int32, capacity int32) *ServerInterface {
-	health := NewHealthService(addr, utils.GetTimeEnv("HEALTH_INTERVAL"),
+	health := NewHealthService(addr, utils.GetTimeEnv("HEALTH_INTERVAL"), 
 		utils.GetTimeEnv("HEALTH_TIMEOUT"), capacity)
 	return &ServerInterface{
 		Addr:   addr,

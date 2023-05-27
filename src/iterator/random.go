@@ -17,5 +17,6 @@ func NewRandom(seed func(), pool *server.ServerPool) Iterator {
 
 func (iter *Random) Next() *server.ServerInterface {
 	i := rand.Intn(iter.pool.Len())
-	return iter.pool.GetNextAvailable(iter.pool.DefaultOrder, i)
+	_, srv := iter.pool.GetNextAvailable(iter.pool.DefaultOrder, i)
+	return srv
 }

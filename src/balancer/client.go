@@ -3,6 +3,7 @@ package balancer
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 	"time"
@@ -22,16 +23,16 @@ func NewClient(rate float32, target_addr *url.URL) *Client {
 
 func (client *Client) Start() {
 	period := time.Duration(float32(time.Second) / client.rate)
-	fmt.Printf("Client: Requesting %s every %s\n", client.target, period)
+	log.Printf("Client: Requesting %s every %s\n", client.target, period)
 	for {
-		fmt.Printf("Client: Sending request to %s...\n", client.target)
+		log.Printf("Client: Sending request to %s...\n", client.target)
 		response, err := http.Get(client.target)
 		if err != nil {
-			fmt.Printf("Client Error: %s\n", err)
+			log.Printf("Client Error: %s\n", err)
 			return
 		}
 		res, _ := ioutil.ReadAll(response.Body)
-		fmt.Printf("Client: Received response from %s - %s\n", response.Request.URL, res)
+		log.Printf("Client: Received response from %s - %s\n", response.Request.URL, res)
 		time.Sleep(period)
 	}
 }

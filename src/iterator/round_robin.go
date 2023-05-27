@@ -23,5 +23,6 @@ func (iter *RoundRobin) Next() *server.ServerInterface {
 	defer iter.mux.Unlock()
 
 	iter.curr = (iter.curr + 1) % iter.pool.Len()
-	return iter.pool.GetNextAvailable(iter.pool.DefaultOrder, iter.curr)
+	_, srv := iter.pool.GetNextAvailable(iter.pool.DefaultOrder, iter.curr)
+	return srv
 }

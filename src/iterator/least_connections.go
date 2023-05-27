@@ -22,5 +22,7 @@ func (iter *LeastConnections) Next() *server.ServerInterface {
 	sort.SliceStable(min_order, func(i int, j int) bool {
 		return iter.pool.Get(i).Health.GetLoad() < iter.pool.Get(j).Health.GetLoad()
 	})
-	return iter.pool.GetNextAvailable(min_order, 0)
+	
+	_, srv := iter.pool.GetNextAvailable(min_order, 0)
+	return srv
 }
