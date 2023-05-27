@@ -17,6 +17,10 @@ func NewServerPool(servers []*ServerInterface) *ServerPool {
 }
 
 func (pool *ServerPool) GetNextAvailable(order []int, idx int) (int, *ServerInterface) {
+	if order == nil || idx < 0 {
+		return -1, nil
+	}
+
 	for i := 0; i < pool.Len(); i++ {
 		try_idx := (idx + i) % pool.Len()
 		server := pool.Get(order[try_idx])

@@ -2,7 +2,8 @@ package iterator
 
 import (
 	server "load-balancer/src/server"
-	"sort"
+
+	"github.com/mkmik/argsort"
 )
 
 type LeastConnections struct {
@@ -15,14 +16,24 @@ func NewLeastConnections(pool *server.ServerPool) Iterator {
 	}
 }
 
-func (iter *LeastConnections) Next() *server.ServerInterface {
-	min_order := make([]int, iter.pool.Len())
-	copy(min_order, iter.pool.DefaultOrder)
+func (iter *LeastConnections) Next() ([]int, int) {
+	if iter.pool.Len() == 0 {
+		return nil, -1
+	}
 
-	sort.SliceStable(min_order, func(i int, j int) bool {
-		return iter.pool.Get(i).Health.GetLoad() < iter.pool.Get(j).Health.GetLoad()
+	loads := make([]int32, iter.pool.Len())
+	for i := 0; i < iter.pool.Len(); i++ {
+		loads[i] = iter.pool.Get(i).Health.GetLoad()
+	}
+
+	order := argsort.SortSlice(loads, func (i int, j int) bool {
+		return loads[i] < loads[j]
 	})
-	
-	_, srv := iter.pool.GetNextAvailable(min_order, 0)
+	return order, 0
+}
+
+func (iter *LeastConnections) NextAvailable() *server.ServerInterface {
+	order, i := iter.Next()
+	_, srv := iter.pool.GetNextAvailable(order, i)
 	return srv
 }

@@ -20,16 +20,24 @@ func NewWeightedRoundRobin(pool *server.ServerPool) Iterator {
 	}
 }
 
-func (iter *WeightedRoundRobin) Next() *server.ServerInterface {
+func (iter *WeightedRoundRobin) Next() ([]int, int) {
 	iter.mux.Lock()
 	defer iter.mux.Unlock()
+
+	if iter.pool.Len() == 0 {
+		return nil, -1
+	}
 
 	if iter.curr_req >= iter.pool.Get(iter.curr).Weight {
 		iter.curr_req = 0
 		iter.curr = (iter.curr + 1) % iter.pool.Len()
 	}
 	iter.curr_req++
+	return iter.pool.DefaultOrder, iter.curr
+}
 
-	_, srv := iter.pool.GetNextAvailable(iter.pool.DefaultOrder, iter.curr)
+func (iter *WeightedRoundRobin) NextAvailable() *server.ServerInterface {
+	order, i := iter.Next()
+	_, srv := iter.pool.GetNextAvailable(order, i)
 	return srv
 }

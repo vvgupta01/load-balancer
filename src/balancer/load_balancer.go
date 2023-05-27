@@ -22,7 +22,7 @@ func NewLoadBalancer(iter iterator.Iterator, port uint16) *LoadBalancer {
 func (balancer *LoadBalancer) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Load balancer: Received request from %s\n", r.RemoteAddr)
 
-	server := balancer.iter.Next()
+	server := balancer.iter.NextAvailable()
 	if server != nil {
 		log.Printf("Load balancer: Forwarding request to %s...\n", server.Addr)
 		server.ServeHTTP(w, r)

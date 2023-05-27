@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"sync/atomic"
 )
 
 type ServerInterface struct {
@@ -16,7 +15,7 @@ type ServerInterface struct {
 }
 
 func NewServerInterface(addr *url.URL, weight int32, capacity int32) *ServerInterface {
-	health := NewHealthService(addr, utils.GetTimeEnv("HEALTH_INTERVAL"), 
+	health := NewHealthService(addr, utils.GetTimeEnv("HEALTH_INTERVAL"),
 		utils.GetTimeEnv("HEALTH_TIMEOUT"), capacity)
 	return &ServerInterface{
 		Addr:   addr,
@@ -31,8 +30,8 @@ func (Interface *ServerInterface) StartHealthCheck() {
 }
 
 func (Interface *ServerInterface) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	atomic.AddInt32(&Interface.Health.load, 1)
-	defer atomic.AddInt32(&Interface.Health.load, -1)
+	Interface.Health.AddLoad(1)
+	defer Interface.Health.AddLoad(-1)
 
 	Interface.proxy.ServeHTTP(w, r)
 }

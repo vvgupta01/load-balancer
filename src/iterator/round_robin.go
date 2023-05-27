@@ -14,15 +14,23 @@ type RoundRobin struct {
 func NewRoundRobin(pool *server.ServerPool) Iterator {
 	return &RoundRobin{
 		pool: pool,
-		curr: 0,
+		curr: -1,
 	}
 }
 
-func (iter *RoundRobin) Next() *server.ServerInterface {
+func (iter *RoundRobin) Next() ([]int, int) {
 	iter.mux.Lock()
 	defer iter.mux.Unlock()
 
+	if iter.pool.Len() == 0 {
+		return nil, -1
+	}
 	iter.curr = (iter.curr + 1) % iter.pool.Len()
-	_, srv := iter.pool.GetNextAvailable(iter.pool.DefaultOrder, iter.curr)
+	return iter.pool.DefaultOrder, iter.curr
+}
+
+func (iter *RoundRobin) NextAvailable() *server.ServerInterface {
+	order, i := iter.Next()
+	_, srv := iter.pool.GetNextAvailable(order, i)
 	return srv
 }

@@ -89,6 +89,14 @@ func (service *HealthService) SetAlive(alive bool) {
 	service.alive = alive
 }
 
+func (service *HealthService) AddLoad(load int32) {
+	atomic.AddInt32(&service.load, load)
+}
+
+func (service *HealthService) SetLoad(load int32) {
+	atomic.StoreInt32(&service.load, load)
+}
+
 func (service *HealthService) IsAlive() bool {
 	service.alive_mux.RLock()
 	defer service.alive_mux.RUnlock()

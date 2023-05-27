@@ -3,6 +3,7 @@ package iterator
 import (
 	server "load-balancer/src/server"
 	"math/rand"
+	"time"
 )
 
 type Random struct {
@@ -10,13 +11,30 @@ type Random struct {
 }
 
 func NewRandom(seed func(), pool *server.ServerPool) Iterator {
+	seed()
 	return &Random{
 		pool: pool,
 	}
 }
 
-func (iter *Random) Next() *server.ServerInterface {
+func DefaultSeed() func() {
+	return func() {
+		rand.Seed(time.Now().UnixNano())
+	}
+}
+
+func (iter *Random) Next() ([]int, int) {
+	if iter.pool.Len() == 0 {
+		return nil, -1
+	}
+
 	i := rand.Intn(iter.pool.Len())
-	_, srv := iter.pool.GetNextAvailable(iter.pool.DefaultOrder, i)
+	return iter.pool.DefaultOrder, i
+}
+
+func (iter *Random) NextAvailable() *server.ServerInterface {
+	order, i := iter.Next()
+	_, srv := iter.pool.GetNextAvailable(order, i)
 	return srv
 }
+
