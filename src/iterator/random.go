@@ -17,10 +17,8 @@ func NewRandom(seed func(), pool *server.ServerPool) Iterator {
 	}
 }
 
-func DefaultSeed() func() {
-	return func() {
-		rand.Seed(time.Now().UnixNano())
-	}
+func DefaultSeed() {
+	rand.Seed(time.Now().UnixNano())
 }
 
 func (iter *Random) Next() ([]int, int) {

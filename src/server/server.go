@@ -11,17 +11,16 @@ import (
 )
 
 type Server struct {
-	port      uint16
+	addr 	  *url.URL
 	Interface *ServerInterface
 
 	mux  sync.RWMutex
 	stop chan struct{}
 }
 
-func NewServer(port uint16, proxy_addr *url.URL, weight int32, capacity int32) *Server {
-	addr, _ := url.Parse(fmt.Sprintf("http://localhost:%d", port))
+func NewServer(addr *url.URL, proxy_addr *url.URL, weight int32, capacity int32) *Server {
 	return &Server{
-		port:      port,
+		addr: 	   addr,
 		Interface: NewServerInterface(addr, weight, capacity),
 	}
 }
@@ -33,7 +32,7 @@ func (server *Server) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 
 func (server *Server) ServerRoutine() {
 	http_server := http.Server{
-		Addr:    fmt.Sprintf(":%d", server.port),
+		Addr:    fmt.Sprintf(":%s", server.addr.Port()),
 		Handler: http.HandlerFunc(server.HTTPHandler),
 	}
 
@@ -42,7 +41,7 @@ func (server *Server) ServerRoutine() {
 			log.Println(err)
 		}
 	}()
-	log.Printf("Started server on %s (weight = %d, capacity = %d)\n", server.Interface.Addr,
+	log.Printf("Started server on %s (weight = %d, capacity = %d)\n", server.addr,
 		server.Interface.Weight, server.Interface.Health.capacity)
 
 	<-server.stop
@@ -73,5 +72,5 @@ func (server *Server) Stop() {
 		close(server.stop)
 		server.stop = nil
 	}
-	log.Printf("Stopped server on %s...\n", server.Interface.Addr)
+	log.Printf("Stopped server on %s...\n", server.addr)
 }

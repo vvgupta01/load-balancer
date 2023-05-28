@@ -8,6 +8,7 @@ import (
 	"load-balancer/src/iterator"
 	"load-balancer/src/server"
 	utils "load-balancer/src/utils"
+	"log"
 	"net/url"
 	"time"
 
@@ -16,7 +17,7 @@ import (
 )
 
 type ServerConfig struct {
-	Port     uint16
+	Addr     string
 	Weight   int32
 	Capacity int32
 }
@@ -24,38 +25,46 @@ type ServerConfig struct {
 func main() {
 	godotenv.Load("config.env")
 	proxy_port := utils.GetIntEnv("PROXY_PORT")
-
-	proxy_addr, _ := url.Parse(fmt.Sprintf("http://localhost:%d", proxy_port))
+	proxy_addr, err := url.Parse(fmt.Sprintf("http://localhost:%d", proxy_port))
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	file, err := ioutil.ReadFile("config_server.json")
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 	}
 
 	var configs []ServerConfig
 	if err := json.Unmarshal(file, &configs); err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 	}
 
-	// Initialize servers
+	// Initialize servers/interfaces
 	servers := make([]*server.Server, len(configs))
 	interfaces := make([]*server.ServerInterface, len(configs))
 
 	for i, conf := range configs {
-		srv := server.NewServer(conf.Port, proxy_addr, conf.Weight, conf.Capacity)
+		addr, err := url.Parse(conf.Addr)
+		if err != nil {
+			log.Fatal(err)
+		}
 
-		servers[i] = srv
-		interfaces[i] = srv.Interface
+		servers[i] = server.NewServer(addr, proxy_addr, conf.Weight, conf.Capacity)
+		interfaces[i] = servers[i].Interface
+		servers[i].Start()
 
-		srv.Start()
-		srv.Interface.StartHealthCheck()
+		// interfaces[i] = server.NewServerInterface(addr, conf.Weight, conf.Capacity)
+
+		interfaces[i].StartHealthCheck()
 	}
 	pool := server.NewServerPool(interfaces)
 
 	// Initialize iterator/load-balancer
-	// iter := iterator.NewRandom(rand.Seed(time.Now().UnixNano(), pool))
+	// iter := iterator.NewRandom(iterator.DefaultSeed, pool)
 	// iter := iterator.NewRoundRobin(pool)
-	iter := iterator.NewWeightedRoundRobin(pool)
+	// iter := iterator.NewWeightedRoundRobin(pool)
+	iter := iterator.NewLeastConnections(pool)
 	load_balancer := balancer.NewLoadBalancer(iter, uint16(proxy_port))
 	go load_balancer.Start()
 
@@ -63,22 +72,4 @@ func main() {
 	time.Sleep(time.Second)
 	client := balancer.NewClient(1, proxy_addr)
 	client.Start()
-
-	// // Test running server/health
-	// time.Sleep(3 * time.Second)
-
-	// // Test stopped server/running health
-	// s.Stop()
-	// time.Sleep(3 * time.Second)
-
-	// // Test stopped server/stopped health
-	// interfaces[0].Health.Stop()
-	// time.Sleep(3 * time.Second)
-
-	// // Test running server/stopped health
-	// s.Start()
-	// time.Sleep(3 * time.Second)
-
-	// interfaces[0].Health.Start()
-	// time.Sleep(3 * time.Second)
 }

@@ -65,9 +65,10 @@ func (service *HealthService) Start() {
 
 	if service.stop == nil {
 		service.stop = make(chan struct{})
-		go service.HealthRoutine()
-		log.Printf("Started health service for %s (interval = %s, timeout = %s)\n",
+		log.Printf("Starting health service for %s (interval = %s, timeout = %s)...\n",
 			service.addr, service.interval, service.timeout)
+		service.HealthCheck()
+		go service.HealthRoutine()
 	}
 }
 

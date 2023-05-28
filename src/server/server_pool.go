@@ -7,7 +7,7 @@ type ServerPool struct {
 
 func NewServerPool(servers []*ServerInterface) *ServerPool {
 	order := make([]int, len(servers))
-	for i := 0; i < len(servers); i++ {
+	for i := range servers {
 		order[i] = i
 	}
 	return &ServerPool{
@@ -21,12 +21,12 @@ func (pool *ServerPool) GetNextAvailable(order []int, idx int) (int, *ServerInte
 		return -1, nil
 	}
 
-	for i := 0; i < pool.Len(); i++ {
+	for i := range order {
 		try_idx := (idx + i) % pool.Len()
 		server := pool.Get(order[try_idx])
 
 		if server.Health.IsAvailable() {
-			return try_idx, server
+			return order[try_idx], server
 		}
 	}
 	return -1, nil

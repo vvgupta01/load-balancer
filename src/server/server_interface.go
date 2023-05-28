@@ -29,6 +29,11 @@ func (Interface *ServerInterface) StartHealthCheck() {
 	Interface.Health.Start()
 }
 
+func (Interface *ServerInterface) StopHealthCheck() {
+	Interface.Health.Stop()
+}
+
+
 func (Interface *ServerInterface) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	Interface.Health.AddLoad(1)
 	defer Interface.Health.AddLoad(-1)
