@@ -11,8 +11,8 @@ import (
 )
 
 func Setup() {
-	os.Setenv("HEALTH_INTERVAL", "10")
-	os.Setenv("HEALTH_TIMEOUT", "10")
+	os.Setenv("HEALTH_INTERVAL", "0")
+	os.Setenv("HEALTH_TIMEOUT", "0")
 	log.SetFlags(0)
 	log.SetOutput(ioutil.Discard)
 }
@@ -23,23 +23,15 @@ func ErrorIdx(i int, actual int, expected int) string {
 
 func CreateTestPool(n int) *server.ServerPool {
 	interfaces := make([]*server.ServerInterface, n)
-	for i := range interfaces {
+	for i := 0; i < n; i++ {
 		interfaces[i] = server.NewServerInterface(&url.URL{}, 1, 1)
 	}
 	return server.NewServerPool(interfaces)
 }
 
-func CreateTestAlivePool(n int, unavailable []int) *server.ServerPool {
-	pool := CreateTestPool(n)
-	for _, i := range unavailable {
-		pool.Get(i).Health.SetAlive(false)
-	}
-	return pool
-}
-
 func CreateTestLoadPool(loads []int32) *server.ServerPool {
 	pool := CreateTestPool(len(loads))
-	for i := range loads {
+	for i := 0; i < len(loads); i++ {
 		pool.Get(i).Health.SetLoad(loads[i])
 	}
 	return pool
@@ -47,7 +39,7 @@ func CreateTestLoadPool(loads []int32) *server.ServerPool {
 
 func CreateTestWeightPool(weights []int32) *server.ServerPool {
 	pool := CreateTestPool(len(weights))
-	for i := range weights {
+	for i := 0; i < len(weights); i++ {
 		pool.Get(i).Weight = weights[i]
 	}
 	return pool
@@ -58,7 +50,7 @@ func CheckOrder(actual []int, expected []int) error {
 		return fmt.Errorf("len: Returned %d; Expected %d", len(actual), len(expected))
 	}
 
-	for i := range actual {
+	for i := 0; i < len(actual); i++ {
 		if actual[i] != expected[i] {
 			return fmt.Errorf(ErrorIdx(i, actual[i], expected[i]))
 		}
@@ -67,7 +59,7 @@ func CheckOrder(actual []int, expected []int) error {
 }
 
 func CheckIterator(iter iterator.Iterator, expected []int) error {
-	for i := range expected {
+	for i := 0; i < len(expected); i++ {
 		if _, actual := iter.Next(); actual != expected[i] {
 			return fmt.Errorf(ErrorIdx(i, actual, expected[i]))
 		}
