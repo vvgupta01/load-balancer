@@ -1,8 +1,8 @@
 package iterator_test
 
 import (
-	"load-balancer/src/iterator"
-	"load-balancer/test"
+	"loadbalancer/src/iterator"
+	"loadbalancer/test"
 	"testing"
 )
 

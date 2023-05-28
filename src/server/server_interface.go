@@ -1,7 +1,7 @@
 package server
 
 import (
-	"load-balancer/src/utils"
+	"loadbalancer/src/utils"
 	"net/http"
 	"net/http/httputil"
 	"net/url"

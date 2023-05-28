@@ -1,4 +1,4 @@
-module load-balancer
+module loadbalancer
 
 go 1.20
 

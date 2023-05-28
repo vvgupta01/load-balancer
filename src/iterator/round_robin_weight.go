@@ -1,7 +1,7 @@
 package iterator
 
 import (
-	"load-balancer/src/server"
+	"loadbalancer/src/server"
 	"sync"
 )
 

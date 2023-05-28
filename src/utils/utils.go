@@ -1,16 +1,22 @@
 package utils
 
 import (
-	"fmt"
+	"io/ioutil"
+	"log"
 	"os"
 	"strconv"
 	"time"
 )
 
+func DisableLogOutput() {
+	log.SetFlags(0)
+	log.SetOutput(ioutil.Discard)
+}
+
 func GetIntEnv(name string) int {
 	val, err := strconv.Atoi(os.Getenv(name))
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 	}
 	return val
 }

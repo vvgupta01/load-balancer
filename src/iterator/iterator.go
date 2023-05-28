@@ -1,6 +1,6 @@
 package iterator
 
-import server "load-balancer/src/server"
+import server "loadbalancer/src/server"
 
 type Iterator interface {
 	Next() ([]int, int)

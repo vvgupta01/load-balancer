@@ -2,7 +2,7 @@ package balancer
 
 import (
 	"fmt"
-	iterator "load-balancer/src/iterator"
+	iterator "loadbalancer/src/iterator"
 	"log"
 	"net/http"
 )

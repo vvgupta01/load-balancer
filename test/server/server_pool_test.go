@@ -2,8 +2,8 @@ package server_test
 
 import (
 	"fmt"
-	server "load-balancer/src/server"
-	test "load-balancer/test"
+	server "loadbalancer/src/server"
+	test "loadbalancer/test"
 	"testing"
 )
 

@@ -2,10 +2,9 @@ package test
 
 import (
 	"fmt"
-	"io/ioutil"
-	"load-balancer/src/iterator"
-	"load-balancer/src/server"
-	"log"
+	"loadbalancer/src/iterator"
+	"loadbalancer/src/server"
+	"loadbalancer/src/utils"
 	"net/url"
 	"os"
 )
@@ -13,8 +12,7 @@ import (
 func Setup() {
 	os.Setenv("HEALTH_INTERVAL", "10")
 	os.Setenv("HEALTH_TIMEOUT", "10")
-	log.SetFlags(0)
-	log.SetOutput(ioutil.Discard)
+	utils.DisableLogOutput()
 }
 
 func ErrorIdx(i int, actual int, expected int) string {

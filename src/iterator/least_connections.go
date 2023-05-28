@@ -1,7 +1,7 @@
 package iterator
 
 import (
-	server "load-balancer/src/server"
+	server "loadbalancer/src/server"
 
 	"github.com/mkmik/argsort"
 )
