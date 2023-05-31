@@ -20,19 +20,21 @@ import (
 )
 
 type ServerConfig struct {
-	Addr     string
+	Host     string
+	Port     uint16
 	Weight   int32
 	Capacity int32
 }
 
 func main() {
 	// Parse command-line arguments
-	env_file := flag.String("env", "default", "Name of .env file specifying load balancer config")
-	log_file := flag.String("log", "", "Name of .log file to log output")
+	env_file := flag.String("env", "default", "Name of env file specifying load balancer config")
+	server_file := flag.String("server", "server", "Name of JSON file specifying server config")
+	log_file := flag.String("log", "", "Name of log file to log output")
 	verbose := flag.Bool("v", false, "Verbose")
 	flag.Parse()
 
-	// Load .env file
+	// Load env file
 	if *env_file != "" {
 		env_path := fmt.Sprintf("config/%s.env", *env_file)
 		if err := godotenv.Load(env_path); err != nil {
@@ -49,7 +51,7 @@ func main() {
 		}
 
 		log_path := fmt.Sprintf("logs/%s.log", *log_file)
-		log_file, err := os.OpenFile(log_path, os.O_CREATE | os.O_RDWR, 0755)
+		log_file, err := os.OpenFile(log_path, os.O_CREATE|os.O_RDWR, 0755)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -61,7 +63,7 @@ func main() {
 		} else {
 			log.SetOutput(log_file)
 		}
-	}	
+	}
 
 	// Load load balancer config
 	proxy_port := utils.GetIntEnv("PROXY_PORT")
@@ -71,7 +73,8 @@ func main() {
 	}
 
 	// Load server config
-	file, err := ioutil.ReadFile("config/server.json")
+	server_path := fmt.Sprintf("config/%s.json", *server_file)
+	file, err := ioutil.ReadFile(server_path)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -86,7 +89,8 @@ func main() {
 	interfaces := make([]*server.ServerInterface, len(configs))
 
 	for i, conf := range configs {
-		addr, err := url.Parse(conf.Addr)
+
+		addr, err := url.Parse(fmt.Sprintf("http://%s:%d", conf.Host, conf.Port))
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -94,13 +98,13 @@ func main() {
 		// Comment this block if not creating test servers
 		servers[i] = server.NewServer(addr, proxy_addr, conf.Weight, conf.Capacity)
 		interfaces[i] = servers[i].Interface
-		servers[i].Start()
-		
+		servers[i].Start(false)
+
 		// Uncomment this line if using servers running elsewhere
 		// interfaces[i] = server.NewServerInterface(addr, conf.Weight, conf.Capacity)
 
-		// Optional health check
-		interfaces[i].StartHealthCheck()
+		// Optional: Start concurrent health check
+		interfaces[i].StartHealthCheck(nil)
 	}
 	pool := server.NewServerPool(interfaces)
 
@@ -108,6 +112,7 @@ func main() {
 	// iter := iterator.NewRandom(iterator.DefaultSeed, pool)
 	// iter := iterator.NewRoundRobin(pool)
 	// iter := iterator.NewWeightedRoundRobin(pool)
+	time.Sleep(time.Second)
 	iter := iterator.NewLeastConnections(pool)
 	load_balancer := balancer.NewLoadBalancer(iter, uint16(proxy_port))
 	go load_balancer.Start()

@@ -1,17 +1,16 @@
 package server
 
 import (
-	"context"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"sync"
-	"time"
 )
 
 type Server struct {
-	addr 	  *url.URL
+	addr      *url.URL
 	Interface *ServerInterface
 
 	mux  sync.RWMutex
@@ -20,7 +19,7 @@ type Server struct {
 
 func NewServer(addr *url.URL, proxy_addr *url.URL, weight int32, capacity int32) *Server {
 	return &Server{
-		addr: 	   addr,
+		addr:      addr,
 		Interface: NewServerInterface(addr, weight, capacity),
 	}
 }
@@ -30,14 +29,18 @@ func (server *Server) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "ACK")
 }
 
-func (server *Server) ServerRoutine() {
-	http_server := http.Server{
-		Addr:    fmt.Sprintf(":%s", server.addr.Port()),
-		Handler: http.HandlerFunc(server.HTTPHandler),
+func (server *Server) ServerRoutine(ack chan struct{}) {
+	l, err := net.Listen("tcp", fmt.Sprintf(":%s", server.addr.Port()))
+	if err != nil {
+		log.Println(err)
+	}
+
+	if ack != nil {
+		ack <- struct{}{}
 	}
 
 	go func() {
-		if err := http_server.ListenAndServe(); err != http.ErrServerClosed {
+		if err := http.Serve(l, http.HandlerFunc(server.HTTPHandler)); err != http.ErrServerClosed {
 			log.Println(err)
 		}
 	}()
@@ -45,21 +48,23 @@ func (server *Server) ServerRoutine() {
 		server.Interface.Weight, server.Interface.Health.capacity)
 
 	<-server.stop
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
-
-	if err := http_server.Shutdown(ctx); err != nil {
-		log.Println(err)
-	}
+	l.Close()
 }
 
-func (server *Server) Start() {
+func (server *Server) Start(block bool) {
 	server.mux.Lock()
 	defer server.mux.Unlock()
 
 	if server.stop == nil {
 		server.stop = make(chan struct{})
-		go server.ServerRoutine()
+
+		if block {
+			ack := make(chan struct{})
+			go server.ServerRoutine(ack)
+			<-ack
+		} else {
+			go server.ServerRoutine(nil)
+		}
 	}
 }
 
@@ -73,4 +78,11 @@ func (server *Server) Stop() {
 		server.stop = nil
 	}
 	log.Printf("Stopped server on %s...\n", server.addr)
+}
+
+func (server *Server) IsRunning() bool {
+	server.mux.Lock()
+	defer server.mux.Unlock()
+
+	return server.stop != nil
 }

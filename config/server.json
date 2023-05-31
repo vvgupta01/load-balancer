@@ -1,16 +1,19 @@
 [
     {
-        "addr": "http://localhost:3001",
+        "host": "localhost",
+        "port": 3001,
         "weight": 1,
         "capacity": 100
     },
     {
-        "addr": "http://localhost:3002",
+        "host": "localhost",
+        "port": 3002,
         "weight": 1,
         "capacity": 100
     },
     {
-        "addr": "http://localhost:3003",
+        "host": "localhost",
+        "port": 3003,
         "weight": 1,
         "capacity": 100
     }

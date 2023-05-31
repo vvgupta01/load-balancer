@@ -17,41 +17,50 @@ type HealthService struct {
 	load     int32
 	capacity int32
 
-	stop      chan struct{}
-	alive_mux sync.RWMutex
-	stop_mux  sync.RWMutex
+	alive_check func(*HealthService) bool
+	stop        chan struct{}
+	alive_mux   sync.RWMutex
+	stop_mux    sync.RWMutex
 }
 
 func NewHealthService(addr *url.URL, interval time.Duration, timeout time.Duration, capacity int32) *HealthService {
 	return &HealthService{
-		addr:     addr,
-		alive:    true,
-		interval: interval,
-		timeout:  timeout,
-		load:     0,
-		capacity: capacity,
+		addr:        addr,
+		alive_check: DefaultAliveCheck,
+		alive:       true,
+		interval:    interval,
+		timeout:     timeout,
+		load:        0,
+		capacity:    capacity,
 	}
 }
 
-func (service *HealthService) HealthCheck() {
+func DefaultAliveCheck(service *HealthService) bool {
 	conn, err := net.DialTimeout("tcp", service.addr.Host, service.timeout)
-
 	if err != nil {
-		service.SetAlive(false)
-	} else {
-		_ = conn.Close()
-		service.SetAlive(true)
+		return false
 	}
+	_ = conn.Close()
+	return true
+}
+
+func (service *HealthService) HealthCheck() {
+	service.SetAlive(service.alive_check(service))
 	log.Printf("%s status - alive = %t, load = %d/%d\n", service.addr,
 		service.IsAlive(), service.GetLoad(), service.GetCapacity())
 }
 
-func (service *HealthService) HealthRoutine() {
+func (service *HealthService) HealthRoutine(notify chan int) {
 	t := time.NewTicker(service.interval)
+	ticks := 0
 	for {
 		select {
 		case <-t.C:
 			service.HealthCheck()
+			if notify != nil {
+				ticks++
+				notify <- ticks
+			}
 		case <-service.stop:
 			t.Stop()
 			return
@@ -59,16 +68,16 @@ func (service *HealthService) HealthRoutine() {
 	}
 }
 
-func (service *HealthService) Start() {
+func (service *HealthService) Start(notify chan int) {
 	service.stop_mux.Lock()
 	defer service.stop_mux.Unlock()
 
 	if service.stop == nil {
 		service.stop = make(chan struct{})
-		log.Printf("Starting health service for %s (interval = %s, timeout = %s)...\n",
+		go service.HealthRoutine(notify)
+
+		log.Printf("Started health service for %s (interval = %s, timeout = %s)\n",
 			service.addr, service.interval, service.timeout)
-		service.HealthCheck()
-		go service.HealthRoutine()
 	}
 }
 
@@ -82,6 +91,10 @@ func (service *HealthService) Stop() {
 		service.stop = nil
 		log.Printf("Stopped health service for %s\n", service.addr)
 	}
+}
+
+func (service *HealthService) SetAliveCheck(alive_check func(*HealthService) bool) {
+	service.alive_check = alive_check
 }
 
 func (service *HealthService) SetAlive(alive bool) {

@@ -10,8 +10,8 @@ import (
 )
 
 func Setup() {
-	os.Setenv("HEALTH_INTERVAL", "10")
-	os.Setenv("HEALTH_TIMEOUT", "10")
+	os.Setenv("HEALTH_INTERVAL", "1")
+	os.Setenv("HEALTH_TIMEOUT", "1")
 	utils.DisableLogOutput()
 }
 

@@ -2,7 +2,7 @@
 Load balancer in Go that implements 
 1. Random, round robin, weighted round robin, and least connections algorithms
 2. Health check service
-3. Client/server test simulation
+3. Client/server testing
 ## Local Run
 ```
 go mod download

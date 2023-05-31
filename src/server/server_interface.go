@@ -25,14 +25,13 @@ func NewServerInterface(addr *url.URL, weight int32, capacity int32) *ServerInte
 	}
 }
 
-func (Interface *ServerInterface) StartHealthCheck() {
-	Interface.Health.Start()
+func (Interface *ServerInterface) StartHealthCheck(notify chan int) {
+	Interface.Health.Start(notify)
 }
 
 func (Interface *ServerInterface) StopHealthCheck() {
 	Interface.Health.Stop()
 }
-
 
 func (Interface *ServerInterface) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	Interface.Health.AddLoad(1)
