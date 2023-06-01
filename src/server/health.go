@@ -50,7 +50,7 @@ func (service *HealthService) HealthCheck() {
 		service.IsAlive(), service.GetLoad(), service.GetCapacity())
 }
 
-func (service *HealthService) HealthRoutine(notify chan int) {
+func (service *HealthService) Run(notify chan int) {
 	t := time.NewTicker(service.interval)
 	ticks := 0
 	for {
@@ -74,7 +74,7 @@ func (service *HealthService) Start(notify chan int) {
 
 	if service.stop == nil {
 		service.stop = make(chan struct{})
-		go service.HealthRoutine(notify)
+		go service.Run(notify)
 
 		log.Printf("Started health service for %s (interval = %s, timeout = %s)\n",
 			service.addr, service.interval, service.timeout)

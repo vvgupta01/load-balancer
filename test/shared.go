@@ -5,9 +5,12 @@ import (
 	"loadbalancer/src/iterator"
 	"loadbalancer/src/server"
 	"loadbalancer/src/utils"
+	"math/rand"
 	"net/url"
 	"os"
 )
+
+const SEED = 0
 
 func Setup() {
 	os.Setenv("HEALTH_INTERVAL", "1")
@@ -17,6 +20,11 @@ func Setup() {
 
 func ErrorIdx(i int, actual int, expected int) string {
 	return fmt.Sprintf("i=%d: Returned %d; Expected %d", i, actual, expected)
+}
+
+func IterNext(iter iterator.Iterator) {
+	srv := iter.NextAvailable()
+	srv.Health.AddLoad(1)
 }
 
 func CreateTestPool(n int) *server.ServerPool {
@@ -47,6 +55,22 @@ func CreateTestWeightPool(weights []int32) *server.ServerPool {
 	pool := CreateTestPool(len(weights))
 	for i := range weights {
 		pool.Get(i).Weight = weights[i]
+	}
+	return pool
+}
+
+func CreateRandomTestPool(n int, n_unavail int) *server.ServerPool {
+	interfaces := make([]*server.ServerInterface, n)
+	for i := range interfaces {
+		weight := int32(rand.Intn(10) + 1)
+		capacity := int32(rand.Intn(9000) + 1000)
+		interfaces[i] = server.NewServerInterface(&url.URL{}, weight, capacity)
+	}
+	pool := server.NewServerPool(interfaces)
+
+	perm := rand.Perm(n)
+	for i := 0; i < n_unavail; i++ {
+		pool.Get(perm[i]).Health.SetAlive(false)
 	}
 	return pool
 }

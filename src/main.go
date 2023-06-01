@@ -26,18 +26,57 @@ type ServerConfig struct {
 	Capacity int32
 }
 
+type ClientConfig struct {
+	Rate float32
+}
+
 func main() {
 	// Parse command-line arguments
-	env_file := flag.String("env", "default", "Name of env file specifying load balancer config")
-	server_file := flag.String("server", "server", "Name of JSON file specifying server config")
-	log_file := flag.String("log", "", "Name of log file to log output")
+	env_file := flag.String("env", "default", "Name of env file in config/load_balancer/ specifying load balancer config")
+	server_file := flag.String("server", "default", "Name of JSON file in config/server/ specifying server config")
+	client_file := flag.String("client", "", "Name of JSON file in config/client/ specifying test client config, empty for none")
+
+	test_server := flag.Bool("t", false, "Indicates if local test servers should be instantiated or if preexisting servers should be used")
+	log_file := flag.String("log", "", "Name of log file to log output, empty to disable logging")
 	verbose := flag.Bool("v", false, "Verbose")
 	flag.Parse()
 
 	// Load env file
 	if *env_file != "" {
-		env_path := fmt.Sprintf("config/%s.env", *env_file)
+		env_path := fmt.Sprintf("config/load_balancer/%s.env", *env_file)
 		if err := godotenv.Load(env_path); err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	// Load load balancer config
+	proxy_port := utils.GetIntEnv("PROXY_PORT")
+	proxy_addr, err := url.Parse(fmt.Sprintf("http://localhost:%d", proxy_port))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Load server config
+	server_path := fmt.Sprintf("config/server/%s.json", *server_file)
+	server_json, err := ioutil.ReadFile(server_path)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var server_configs []ServerConfig
+	if err := json.Unmarshal(server_json, &server_configs); err != nil {
+		log.Fatal(err)
+	}
+
+	// Load test client config
+	var client_configs []ClientConfig
+	if *client_file != "" {
+		client_path := fmt.Sprintf("config/client/%s.json", *client_file)
+		client_json, err := ioutil.ReadFile(client_path)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if err := json.Unmarshal(client_json, &client_configs); err != nil {
 			log.Fatal(err)
 		}
 	}
@@ -65,60 +104,41 @@ func main() {
 		}
 	}
 
-	// Load load balancer config
-	proxy_port := utils.GetIntEnv("PROXY_PORT")
-	proxy_addr, err := url.Parse(fmt.Sprintf("http://localhost:%d", proxy_port))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Load server config
-	server_path := fmt.Sprintf("config/%s.json", *server_file)
-	file, err := ioutil.ReadFile(server_path)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	var configs []ServerConfig
-	if err := json.Unmarshal(file, &configs); err != nil {
-		log.Fatal(err)
-	}
-
 	// Initialize servers/interfaces
-	servers := make([]*server.Server, len(configs))
-	interfaces := make([]*server.ServerInterface, len(configs))
+	servers := make([]*server.Server, len(server_configs))
+	interfaces := make([]*server.ServerInterface, len(server_configs))
 
-	for i, conf := range configs {
-
+	for i, conf := range server_configs {
 		addr, err := url.Parse(fmt.Sprintf("http://%s:%d", conf.Host, conf.Port))
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		// Comment this block if not creating test servers
-		servers[i] = server.NewServer(addr, proxy_addr, conf.Weight, conf.Capacity)
-		interfaces[i] = servers[i].Interface
-		servers[i].Start(false)
-
-		// Uncomment this line if using servers running elsewhere
-		// interfaces[i] = server.NewServerInterface(addr, conf.Weight, conf.Capacity)
+		if *test_server {
+			servers[i] = server.NewServer(addr, proxy_addr, conf.Weight, conf.Capacity)
+			interfaces[i] = servers[i].Interface
+			servers[i].Start(false)
+		} else {
+			interfaces[i] = server.NewServerInterface(addr, conf.Weight, conf.Capacity)
+		}
 
 		// Optional: Start concurrent health check
 		interfaces[i].StartHealthCheck(nil)
 	}
 	pool := server.NewServerPool(interfaces)
 
+	// Initialize test clients to periodically ping load balancer
+	time.Sleep(time.Second)
+	for _, conf := range client_configs {
+		client := balancer.NewClient(conf.Rate, proxy_addr)
+		go client.Start()
+	}
+
 	// Initialize iterator/load-balancer
 	// iter := iterator.NewRandom(iterator.DefaultSeed, pool)
 	// iter := iterator.NewRoundRobin(pool)
 	// iter := iterator.NewWeightedRoundRobin(pool)
-	time.Sleep(time.Second)
 	iter := iterator.NewLeastConnections(pool)
 	load_balancer := balancer.NewLoadBalancer(iter, uint16(proxy_port))
-	go load_balancer.Start()
-
-	// Initialize test client to ping load balancer
-	time.Sleep(time.Second)
-	client := balancer.NewClient(1, proxy_addr)
-	client.Start()
+	load_balancer.Start()
 }

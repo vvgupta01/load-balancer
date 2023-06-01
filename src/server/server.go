@@ -29,7 +29,7 @@ func (server *Server) HTTPHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "ACK")
 }
 
-func (server *Server) ServerRoutine(ack chan struct{}) {
+func (server *Server) Run(ack chan struct{}) {
 	l, err := net.Listen("tcp", fmt.Sprintf(":%s", server.addr.Port()))
 	if err != nil {
 		log.Println(err)
@@ -60,10 +60,10 @@ func (server *Server) Start(block bool) {
 
 		if block {
 			ack := make(chan struct{})
-			go server.ServerRoutine(ack)
+			go server.Run(ack)
 			<-ack
 		} else {
-			go server.ServerRoutine(nil)
+			go server.Run(nil)
 		}
 	}
 }
