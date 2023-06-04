@@ -14,37 +14,27 @@ func TestRandomNext(t *testing.T) {
 		rand.Seed(test.SEED)
 	}
 
-	t.Run("Order check", func(t *testing.T) {
-		pool := test.CreateTestPool(10)
-		iter := iterator.NewRandom(seed, pool)
-
-		order, _ := iter.Next()
-		if err := test.CheckOrder(order, pool.DefaultOrder); err != nil {
-			t.Error(err)
-		}
-	})
-
 	t.Run("Empty pool", func(t *testing.T) {
-		pool := test.CreateTestPool(0)
+		pool := test.CreateDefaultTestPool(0)
 		iter := iterator.NewRandom(seed, pool)
 		expected := []int{-1}
 
-		if err := test.CheckIterator(iter, expected); err != nil {
+		if err := test.CheckIterNextAvailable(iter, expected, expected); err != nil {
 			t.Error(err)
 		}
 	})
 
 	t.Run("Seed check", func(t *testing.T) {
-		pool := test.CreateTestPool(10)
+		pool := test.CreateDefaultTestPool(10)
 		iter := iterator.NewRandom(seed, pool)
 
-		r := rand.New(rand.NewSource(0))
+		r := rand.New(rand.NewSource(test.SEED))
 		expected := make([]int, 100)
 		for i := 0; i < len(expected); i++ {
 			expected[i] = r.Intn(pool.Len())
 		}
 
-		if err := test.CheckIterator(iter, expected); err != nil {
+		if err := test.CheckIterNextAvailable(iter, expected, expected); err != nil {
 			t.Error(err)
 		}
 	})
@@ -61,7 +51,7 @@ func BenchmarkRandomNext(b *testing.B) {
 
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			test.IterNext(iter)
+			test.TestNext(iter)
 		}
 	})
 
@@ -71,7 +61,7 @@ func BenchmarkRandomNext(b *testing.B) {
 
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			test.IterNext(iter)
+			test.TestNext(iter)
 		}
 	})
 
@@ -81,7 +71,7 @@ func BenchmarkRandomNext(b *testing.B) {
 
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			test.IterNext(iter)
+			test.TestNext(iter)
 		}
 	})
 }

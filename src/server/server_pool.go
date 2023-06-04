@@ -1,41 +1,23 @@
 package server
 
-type ServerPool struct {
-	servers      []*ServerInterface
-	DefaultOrder []int
-}
+type ServerPool []*ServerInterface
 
-func NewServerPool(servers []*ServerInterface) *ServerPool {
-	order := make([]int, len(servers))
-	for i := range servers {
-		order[i] = i
-	}
-	return &ServerPool{
-		servers:      servers,
-		DefaultOrder: order,
-	}
-}
-
-func (pool *ServerPool) GetNextAvailable(order []int, idx int) (int, *ServerInterface) {
-	if order == nil || idx < 0 {
+func (pool ServerPool) GetNextAvailable(idx int) (int, *ServerInterface) {
+	if idx < 0 {
 		return -1, nil
 	}
 
-	for i := range order {
+	for i := range pool {
 		try_idx := (idx + i) % pool.Len()
-		server := pool.Get(order[try_idx])
+		srv := pool[try_idx]
 
-		if server.Health.IsAvailable() {
-			return order[try_idx], server
+		if srv.Health.IsAvailable() {
+			return try_idx, srv
 		}
 	}
 	return -1, nil
 }
 
-func (pool *ServerPool) Len() int {
-	return len(pool.servers)
-}
-
-func (pool *ServerPool) Get(i int) *ServerInterface {
-	return pool.servers[i]
+func (pool ServerPool) Len() int {
+	return len(pool)
 }

@@ -25,7 +25,7 @@ func tickCheck(actual int, expected int) error {
 }
 
 func createTestServer(addr *url.URL) *server.Server {
-	srv := server.NewServer(addr, nil, 1, 1)
+	srv := server.NewServer(addr, nil, 0, 1, 1)
 	test_check := func(*server.HealthService) bool {
 		return srv.IsRunning()
 	}

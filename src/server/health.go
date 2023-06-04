@@ -45,7 +45,12 @@ func DefaultAliveCheck(service *HealthService) bool {
 }
 
 func (service *HealthService) HealthCheck() {
-	service.SetAlive(service.alive_check(service))
+	alive := service.alive_check(service)
+	if !alive {
+		service.SetLoad(0)
+	}
+	service.SetAlive(alive)
+
 	log.Printf("%s status - alive = %t, load = %d/%d\n", service.addr,
 		service.IsAlive(), service.GetLoad(), service.GetCapacity())
 }

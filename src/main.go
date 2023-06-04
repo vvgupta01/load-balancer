@@ -106,7 +106,7 @@ func main() {
 
 	// Initialize servers/interfaces
 	servers := make([]*server.Server, len(server_configs))
-	interfaces := make([]*server.ServerInterface, len(server_configs))
+	pool := make(server.ServerPool, len(server_configs))
 
 	for i, conf := range server_configs {
 		addr, err := url.Parse(fmt.Sprintf("http://%s:%d", conf.Host, conf.Port))
@@ -115,17 +115,16 @@ func main() {
 		}
 
 		if *test_server {
-			servers[i] = server.NewServer(addr, proxy_addr, conf.Weight, conf.Capacity)
-			interfaces[i] = servers[i].Interface
+			servers[i] = server.NewServer(addr, proxy_addr, i, conf.Weight, conf.Capacity)
+			pool[i] = servers[i].Interface
 			servers[i].Start(false)
 		} else {
-			interfaces[i] = server.NewServerInterface(addr, conf.Weight, conf.Capacity)
+			pool[i] = server.NewServerInterface(addr, i, conf.Weight, conf.Capacity)
 		}
 
 		// Optional: Start concurrent health check
-		interfaces[i].StartHealthCheck(nil)
+		pool[i].StartHealthCheck(nil)
 	}
-	pool := server.NewServerPool(interfaces)
 
 	// Initialize test clients to periodically ping load balancer
 	time.Sleep(time.Second)

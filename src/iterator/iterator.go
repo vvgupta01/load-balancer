@@ -3,7 +3,9 @@ package iterator
 import server "loadbalancer/src/server"
 
 type Iterator interface {
-	Next() ([]int, int)
+	Next() int
 
-	NextAvailable() *server.ServerInterface
+	NextAvailable() (int, *server.ServerInterface)
+
+	DoneCallback(int)
 }

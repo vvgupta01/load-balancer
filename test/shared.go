@@ -22,76 +22,67 @@ func ErrorIdx(i int, actual int, expected int) string {
 	return fmt.Sprintf("i=%d: Returned %d; Expected %d", i, actual, expected)
 }
 
-func IterNext(iter iterator.Iterator) {
-	srv := iter.NextAvailable()
-	srv.Health.AddLoad(1)
+func TestNext(iter iterator.Iterator) {
+	_, srv := iter.NextAvailable()
+	iter.DoneCallback(srv.Index)
 }
 
-func CreateTestPool(n int) *server.ServerPool {
-	interfaces := make([]*server.ServerInterface, n)
-	for i := range interfaces {
-		interfaces[i] = server.NewServerInterface(&url.URL{}, 1, 1)
+func CreateTestPool(n int, loads []int32, capacities []int32, weights []int32, unavailable []int) server.ServerPool {
+	pool := make(server.ServerPool, n)
+	for i := range pool {
+		capacity, weight := int32(100), int32(1)
+		if capacities != nil {
+			capacity = capacities[i]
+		}
+
+		if weights != nil {
+			weight = weights[i]
+		}
+
+		pool[i] = server.NewServerInterface(nil, i, weight, capacity)
+
+		if loads != nil {
+			pool[i].Health.SetLoad(loads[i])
+		}
 	}
-	return server.NewServerPool(interfaces)
-}
 
-func CreateTestAlivePool(n int, unavailable []int) *server.ServerPool {
-	pool := CreateTestPool(n)
-	for _, i := range unavailable {
-		pool.Get(i).Health.SetAlive(false)
-	}
-	return pool
-}
-
-func CreateTestLoadPool(loads []int32) *server.ServerPool {
-	pool := CreateTestPool(len(loads))
-	for i := range loads {
-		pool.Get(i).Health.SetLoad(loads[i])
-	}
-	return pool
-}
-
-func CreateTestWeightPool(weights []int32) *server.ServerPool {
-	pool := CreateTestPool(len(weights))
-	for i := range weights {
-		pool.Get(i).Weight = weights[i]
+	if unavailable != nil {
+		for _, i := range unavailable {
+			pool[i].Health.SetAlive(false)
+		}
 	}
 	return pool
 }
 
-func CreateRandomTestPool(n int, n_unavail int) *server.ServerPool {
-	interfaces := make([]*server.ServerInterface, n)
-	for i := range interfaces {
+func CreateDefaultTestPool(n int) server.ServerPool {
+	return CreateTestPool(n, nil, nil, nil, nil)
+}
+
+func CreateRandomTestPool(n int, n_unavail int) server.ServerPool {
+	pool := make(server.ServerPool, n)
+	for i := range pool {
 		weight := int32(rand.Intn(10) + 1)
 		capacity := int32(rand.Intn(9000) + 1000)
-		interfaces[i] = server.NewServerInterface(&url.URL{}, weight, capacity)
+		pool[i] = server.NewServerInterface(&url.URL{}, i, weight, capacity)
 	}
-	pool := server.NewServerPool(interfaces)
 
 	perm := rand.Perm(n)
 	for i := 0; i < n_unavail; i++ {
-		pool.Get(perm[i]).Health.SetAlive(false)
+		pool[perm[i]].Health.SetAlive(false)
 	}
 	return pool
 }
 
-func CheckOrder(actual []int, expected []int) error {
-	if len(actual) != len(expected) {
-		return fmt.Errorf("len: Returned %d; Expected %d", len(actual), len(expected))
-	}
+func CheckIterNextAvailable(iter iterator.Iterator, exp_i []int, exp_next []int) error {
+	for i := range exp_i {
+		act_i, act_next := iter.NextAvailable()
 
-	for i := range actual {
-		if actual[i] != expected[i] {
-			return fmt.Errorf(ErrorIdx(i, actual[i], expected[i]))
-		}
-	}
-	return nil
-}
-
-func CheckIterator(iter iterator.Iterator, expected []int) error {
-	for i := range expected {
-		if _, actual := iter.Next(); actual != expected[i] {
-			return fmt.Errorf(ErrorIdx(i, actual, expected[i]))
+		if act_i != exp_i[i] {
+			return fmt.Errorf("Index: %s", ErrorIdx(i, act_i, exp_i[i]))
+		} else if act_next == nil && exp_next[i] != -1 {
+			return fmt.Errorf(ErrorIdx(i, -1, exp_next[i]))
+		} else if act_next != nil && act_next.Index != exp_next[i] {
+			return fmt.Errorf("Next: %s", ErrorIdx(i, act_next.Index, exp_next[i]))
 		}
 	}
 	return nil

@@ -17,10 +17,10 @@ type Server struct {
 	stop chan struct{}
 }
 
-func NewServer(addr *url.URL, proxy_addr *url.URL, weight int32, capacity int32) *Server {
+func NewServer(addr *url.URL, proxy_addr *url.URL, index int, weight int32, capacity int32) *Server {
 	return &Server{
 		addr:      addr,
-		Interface: NewServerInterface(addr, weight, capacity),
+		Interface: NewServerInterface(addr, index, weight, capacity),
 	}
 }
 
