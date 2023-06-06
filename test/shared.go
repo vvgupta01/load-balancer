@@ -13,8 +13,8 @@ import (
 const SEED = 0
 
 func Setup() {
-	os.Setenv("HEALTH_INTERVAL", "1")
-	os.Setenv("HEALTH_TIMEOUT", "1")
+	os.Setenv("HEALTH_INTERVAL", "1ms")
+	os.Setenv("HEALTH_TIMEOUT", "1ms")
 	utils.DisableLogOutput()
 }
 
@@ -39,7 +39,8 @@ func CreateTestPool(n int, loads []int32, capacities []int32, weights []int32, u
 			weight = weights[i]
 		}
 
-		pool[i] = server.NewServerInterface(nil, i, weight, capacity)
+		addr, _ := url.Parse("")
+		pool[i] = server.NewServerInterface(addr, i, weight, capacity)
 
 		if loads != nil {
 			pool[i].Health.SetLoad(loads[i])

@@ -1,4 +1,4 @@
-package balancer
+package main
 
 import (
 	"fmt"
@@ -8,9 +8,10 @@ import (
 )
 
 type LoadBalancer struct {
-	iter iterator.Iterator
-	port uint16
-	done chan int
+	iter         iterator.Iterator
+	port         uint16
+	done         chan int
+	transactions int64
 }
 
 func NewLoadBalancer(iter iterator.Iterator, port uint16) *LoadBalancer {
@@ -33,10 +34,11 @@ func (balancer *LoadBalancer) HTTPHandler(w http.ResponseWriter, r *http.Request
 	}
 }
 
-func (balancer *LoadBalancer) RequestCallback() {
+func (balancer *LoadBalancer) requestCallback() {
 	for {
 		i := <-balancer.done
 		balancer.iter.DoneCallback(i)
+		balancer.transactions++
 	}
 }
 
@@ -46,9 +48,9 @@ func (balancer *LoadBalancer) Start() {
 		Handler: http.HandlerFunc(balancer.HTTPHandler),
 	}
 
-	go balancer.RequestCallback()
+	go balancer.requestCallback()
 
-	log.Printf("Load balancer: Running on http://localhost:%d...\n", balancer.port)
+	log.Printf("Load balancer: Forwarding on http://localhost:%d...\n", balancer.port)
 	err := server.ListenAndServe()
 	if err != nil {
 		log.Fatalln(err)

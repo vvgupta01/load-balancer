@@ -4,6 +4,7 @@ import (
 	"log"
 	"net"
 	"net/url"
+	"os"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -25,7 +26,7 @@ type HealthService struct {
 
 func NewHealthService(addr *url.URL, interval time.Duration, timeout time.Duration, capacity int32) *HealthService {
 	return &HealthService{
-		addr:        addr,
+		addr:        addr.JoinPath(os.Getenv("HEALTH_ENDPOINT")),
 		alive_check: DefaultAliveCheck,
 		alive:       true,
 		interval:    interval,

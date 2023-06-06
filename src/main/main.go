@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"loadbalancer/src/balancer"
 	"loadbalancer/src/iterator"
 	"loadbalancer/src/server"
 	utils "loadbalancer/src/utils"
@@ -19,20 +18,13 @@ import (
 	// "math/rand"
 )
 
-type ServerConfig struct {
-	Host     string
-	Port     uint16
-	Weight   int32
-	Capacity int32
-}
-
 type ClientConfig struct {
 	Rate float32
 }
 
 func main() {
 	// Parse command-line arguments
-	env_file := flag.String("env", "default", "Name of env file in config/load_balancer/ specifying load balancer config")
+	env_file := flag.String("env", "default", "Name of env file in config/app/ specifying app config")
 	server_file := flag.String("server", "default", "Name of JSON file in config/server/ specifying server config")
 	client_file := flag.String("client", "", "Name of JSON file in config/client/ specifying test client config, empty for none")
 
@@ -43,14 +35,15 @@ func main() {
 
 	// Load env file
 	if *env_file != "" {
-		env_path := fmt.Sprintf("config/load_balancer/%s.env", *env_file)
+		env_path := fmt.Sprintf("config/app/%s.env", *env_file)
 		if err := godotenv.Load(env_path); err != nil {
 			log.Fatal(err)
 		}
 	}
 
-	// Load load balancer config
+	// Load app config
 	proxy_port := utils.GetIntEnv("PROXY_PORT")
+	manager_port := utils.GetIntEnv("MANAGER_PORT")
 	proxy_addr, err := url.Parse(fmt.Sprintf("http://localhost:%d", proxy_port))
 	if err != nil {
 		log.Fatal(err)
@@ -129,7 +122,7 @@ func main() {
 	// Initialize test clients to periodically ping load balancer
 	time.Sleep(time.Second)
 	for _, conf := range client_configs {
-		client := balancer.NewClient(conf.Rate, proxy_addr)
+		client := NewClient(conf.Rate, proxy_addr)
 		go client.Start()
 	}
 
@@ -138,6 +131,11 @@ func main() {
 	// iter := iterator.NewRoundRobin(pool)
 	// iter := iterator.NewWeightedRoundRobin(pool)
 	iter := iterator.NewLeastConnections(pool)
-	load_balancer := balancer.NewLoadBalancer(iter, uint16(proxy_port))
-	load_balancer.Start()
+	load_balancer := NewLoadBalancer(iter, uint16(proxy_port))
+	go load_balancer.Start()
+
+	manager := NewServerManager(load_balancer, uint16(manager_port))
+	manager.SetServers(server_configs)
+	manager.SetPool(pool)
+	manager.Start()
 }
